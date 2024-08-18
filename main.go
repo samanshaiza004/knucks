@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"net/http"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/logger"
@@ -21,6 +22,11 @@ var icon []byte
 func main() {
 	// Create an instance of the app structure
 	app := NewApp()
+
+	go func() {
+		http.HandleFunc("/", ServeFile)
+		http.ListenAndServe(":34115", nil)
+	}()
 
 	// Create application with options
 	err := wails.Run(&options.App{

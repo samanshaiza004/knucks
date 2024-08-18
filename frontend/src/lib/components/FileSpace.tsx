@@ -1,8 +1,20 @@
 import { useRef, useEffect, useState } from "react";
-import { ReturnDirItems, MoveDir } from "../../../wailsjs/go/main/App";
+import {
+  ReturnDirItems,
+  MoveDir,
+  GetFilePathURL,
+} from "../../../wailsjs/go/main/App";
 import WaveSurfer from "wavesurfer.js";
 import DirectoryButton from "./DirectoryButton";
 import FileButton from "./FileButton";
+
+export type File = {
+  name: string;
+  location: string;
+  is_directory: boolean;
+};
+
+const INITIAL_DIRECTORY: string[] = ["/home", "saman", "samples"];
 
 const FILE_EXTENSIONS = {
   images: ["jpg", "png"],
@@ -11,19 +23,14 @@ const FILE_EXTENSIONS = {
   video: ["mp4", "mov", "avi"],
 };
 
-export type File = {
-  name: string;
-  location: string;
-  is_directory: boolean;
-};
-
-const INITIAL_DIRECTORY: string[] = ["/home", "saman", "dev"];
-
 function FileSpace() {
   const [currentDirectory, setCurrentDirectory] =
     useState<string[]>(INITIAL_DIRECTORY);
   const [directoryItems, setDirectoryItems] = useState<File[]>([]);
   const [currentAudio, setCurrentAudio] = useState<string>("");
+
+  const waveformRef = useRef<HTMLDivElement>(null);
+  const waveSurferRef = useRef<WaveSurfer | null>(null);
 
   const getCurrentDir = () => {
     ReturnDirItems(currentDirectory).then((res) => {
@@ -50,25 +57,35 @@ function FileSpace() {
       NewDir(item.name);
     } else if (ext && FILE_EXTENSIONS.audio.includes(ext)) {
       setCurrentAudio(item.location);
+      playAudio(item.location);
     }
   };
 
-  const waveformRef = useRef(null);
+  const playAudio = (path: string) => {
+    GetFilePathURL(path).then((url: any) => {
+      if (waveSurferRef.current) {
+        waveSurferRef.current.load(url);
+      }
+    });
+  };
 
   useEffect(() => {
     if (waveformRef.current) {
-      let wavesurfer = WaveSurfer.create({
+      waveSurferRef.current = WaveSurfer.create({
         container: waveformRef.current,
         waveColor: "#4F4A85",
         progressColor: "#383351",
-        url: currentAudio,
       });
 
-      wavesurfer.on("interaction", () => {
-        wavesurfer.play();
+      waveSurferRef.current.on("ready", () => {
+        waveSurferRef.current?.play();
       });
     }
-  }, [currentAudio]);
+
+    return () => {
+      waveSurferRef.current?.destroy();
+    };
+  }, []);
 
   useEffect(() => {
     getCurrentDir();

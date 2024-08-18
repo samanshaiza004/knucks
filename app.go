@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -65,6 +66,27 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	// Perform your setup here
 	a.ctx = ctx
+}
+
+func (a *App) ReadFile(path string) ([]byte, error) {
+	return ioutil.ReadFile(path)
+}
+
+// ServeFile handles serving a file from the local filesystem
+func ServeFile(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	if r.Method == http.MethodOptions {
+		return
+	}
+    http.ServeFile(w, r, r.URL.Path[1:])
+}
+
+func (a *App) GetFilePathURL(path string) string {
+	absPath, err := filepath.Abs(path)
+	check(err)
+	return "http://localhost:34115/" + absPath
 }
 
 // domReady is called after front-end resources have been loaded
